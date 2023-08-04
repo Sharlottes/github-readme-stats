@@ -22,8 +22,7 @@ const renderError = (message, secondaryMessage = "") => {
     .small { font: 600 12px 'Segoe UI', Ubuntu, Sans-Serif; fill: #252525 }
     .gray { fill: #858585 }
     </style>
-    <rect x="0.5" y="0.5" width="${
-      ERROR_CARD_LENGTH - 1
+    <rect x="0.5" y="0.5" width="${ERROR_CARD_LENGTH - 1
     }" height="99%" rx="4.5" fill="#FFFEFE" stroke="#E4E2E2"/>
     <text x="25" y="45" class="text">Something went wrong! file an issue at https://tiny.one/readme-stats</text>
     <text data-testid="message" x="25" y="55" class="text small">
@@ -296,7 +295,7 @@ const wrapTextMultiline = (text, width = 59, maxLines = 3) => {
   return multiLineText;
 };
 
-const noop = () => {};
+const noop = () => { };
 // return console instance based on the environment
 const logger =
   process.env.NODE_ENV !== "test" ? console : { log: noop, error: noop };
@@ -308,11 +307,16 @@ const CONSTANTS = {
   ONE_DAY: 86400,
 };
 
+const OWNER_AFFILIATIONS = ["OWNER", "COLLABORATOR", "ORGANIZATION_MEMBER"];
+
 const SECONDARY_ERROR_MESSAGES = {
   MAX_RETRY:
     "Please add an env variable called PAT_1 with your github token in vercel",
   USER_NOT_FOUND: "Make sure the provided username is not an organization",
   GRAPHQL_ERROR: "Please try again later",
+  INVALID_AFFILIATION: `Invalid owner affiliations. Valid values are: ${OWNER_AFFILIATIONS.join(
+    ", ",
+  )}`,
   WAKATIME_USER_NOT_FOUND: "Make sure you have a public WakaTime profile",
 };
 
@@ -333,6 +337,7 @@ class CustomError extends Error {
   static MAX_RETRY = "MAX_RETRY";
   static USER_NOT_FOUND = "USER_NOT_FOUND";
   static GRAPHQL_ERROR = "GRAPHQL_ERROR";
+  static INVALID_AFFILIATION = "INVALID_AFFILIATION";
   static WAKATIME_ERROR = "WAKATIME_ERROR";
 }
 
@@ -433,6 +438,36 @@ const parseEmojis = (str) => {
     return toEmoji.get(emoji) || "";
   });
 };
+/**
+ * Parse owner affiliations.
+ *
+ * @param {string[]} affiliations
+ * @returns {string[]} Parsed affiliations.
+ *
+ * @throws {CustomError} If affiliations contains invalid values.
+ */
+const parseOwnerAffiliations = (affiliations) => {
+  // Set default value for ownerAffiliations.
+  // NOTE: Done here since parseArray() will always return an empty array even nothing
+  //was specified.
+  affiliations =
+    affiliations && affiliations.length > 0
+      ? affiliations.map((affiliation) => affiliation.toUpperCase())
+      : ["OWNER"];
+
+  // Check if ownerAffiliations contains valid values.
+  if (
+    affiliations.some(
+      (affiliation) => !OWNER_AFFILIATIONS.includes(affiliation),
+    )
+  ) {
+    throw new CustomError(
+      "Invalid query parameter",
+      CustomError.INVALID_AFFILIATION,
+    );
+  }
+  return affiliations;
+};
 
 /**
  * Get diff in minutes
@@ -464,11 +499,13 @@ export {
   wrapTextMultiline,
   logger,
   CONSTANTS,
+  OWNER_AFFILIATIONS,
   CustomError,
   MissingParamError,
   measureText,
   lowercaseTrim,
   chunkArray,
   parseEmojis,
+  parseOwnerAffiliations,
   dateDiff,
 };
